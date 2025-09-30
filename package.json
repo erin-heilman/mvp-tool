@@ -1,0 +1,18 @@
+{
+  "name": "mvp-strategic-planning-tool",
+  "version": "1.0.0",
+  "description": "MVP Strategic Planning and Performance Scoring Tool for Memorial of Converse",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build needed'",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "MIPS",
+    "MVP",
+    "healthcare",
+    "quality-reporting"
+  ],
+  "author": "Memorial of Converse",
+  "license": "MIT"
+}

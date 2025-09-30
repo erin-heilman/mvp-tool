@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVP Strategic Planning & Performance Scoring Tool - Memorial of Converse</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 20px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .loading-details {
+            margin-top: 10px;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .header-btn.primary {
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 30px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .planning-mode {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .planning-mode.hidden {
+            display: none;
+        }
+
+        .left-panel {
+            width: 350px;
+            background: white;
+            border-right: 1px solid #e0e6ed;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e6ed;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filter-controls {
+            padding: 10px;
+            background: white;
+            border-bottom: 1px solid #e0e6ed;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .filter-select, .search-box {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .clinician-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .clinician-card {
+            background: white;
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .clinician-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.1);
+        }
+
+        .clinician-card.selected {
+            background: #f0f4ff;
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.2);
+        }
+
+        .center-panel {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f5f7fa;
+        }
+
+        .mvp-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .mvp-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .mvp-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .mvp-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 15px;
+        }
+
+        .mvp-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .mvp-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            font-size: 11px;
+        }
+
+        .mvp-body {
+            padding: 15px;
+        }
+
+        .right-panel {
+            width: 400px;
+            background: white;
+            border-left: 1px solid #e0e6ed;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .detail-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e6ed;
+        }
+
+        .detail-tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .detail-tab.active {
+            background: white;
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .detail-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .empty-state {
+            color: #adb5bd;
+            text-align: center;
+            padding: 50px 20px;
+            font-style: italic;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.3;
+        }
+
+        .review-mode {
+            display: none;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .review-mode.active {
+            display: flex;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .bulk-actions {
+            padding: 10px;
+            background: #f0f4ff;
+            border-bottom: 1px solid #667eea;
+            display: none;
+        }
+
+        .bulk-actions.active {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+            border: 1px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-small:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: none;
+            animation: slideIn 0.3s;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .toast.error {
+            background: #dc3545;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .measure-item {
+            display: flex;
+            align-items: start;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .measure-item.selected {
+            background: #f0f4ff;
+            border-color: #667eea;
+        }
+
+        .measure-checkbox {
+            margin-right: 12px;
+            margin-top: 4px;
+        }
+
+        .measure-info {
+            flex: 1;
+        }
+
+        .work-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .work-item.completed {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loading">
+        <div class="loader"></div>
+        <div class="loading-text">Connecting to Google Sheets...</div>
+        <div class="loading-details" id="loading-details"></div>
+    </div>
+
+    <div class="header">
+        <h1>MVP Strategic Planning Tool</h1>
+        <div class="stats-bar">
+            <div class="stat">
+                <div class="stat-value" id="total-clinicians">0</div>
+                <div class="stat-label">Total Clinicians</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="assigned-clinicians">0</div>
+                <div class="stat-label">Assigned</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="mvps-active">0</div>
+                <div class="stat-label">Active MVPs</div>
+            </div>
+        </div>
+        <div class="header-controls">
+            <button class="header-btn" onclick="toggleMode()" id="mode-toggle">Review Plan</button>
+            <button class="header-btn" onclick="refreshData()">🔄 Refresh</button>
+            <button class="header-btn primary" onclick="exportPlan()">📥 Export</button>
+        </div>
+    </div>
+
+    <div class="planning-mode" id="planning-mode">
+        <div class="left-panel">
+            <div class="panel-header">
+                Unassigned Clinicians
+                <div class="selection-controls">
+                    <button class="btn-small" onclick="selectAllVisible()">Select All</button>
+                    <button class="btn-small" onclick="clearSelection()">Clear</button>
+                </div>
+            </div>
+
+            <div class="filter-controls">
+                <div class="filter-row">
+                    <select class="filter-select" id="specialty-filter" onchange="filterClinicians()">
+                        <option value="all">All Specialties</option>
+                    </select>
+                </div>
+                <div class="filter-row">
+                    <input type="text" class="search-box" id="clinician-search" 
+                           placeholder="Search by name or NPI..." onkeyup="filterClinicians()">
+                </div>
+            </div>
+
+            <div class="bulk-actions" id="bulk-actions">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select id="bulk-mvp-select" style="padding: 6px; border-radius: 4px;">
+                        <option value="">Select MVP...</option>
+                    </select>
+                    <button class="btn-small" onclick="bulkAssign()">Assign</button>
+                </div>
+                <span id="bulk-selected-count">0 selected</span>
+            </div>
+
+            <div class="clinician-list" id="unassigned-list"></div>
+        </div>
+
+        <div class="center-panel">
+            <div class="mvp-grid" id="mvp-grid">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <h3>No Active MVPs Yet</h3>
+                    <p>Select clinicians from the left panel and assign them to an MVP to get started.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="detail-tabs">
+                <div class="detail-tab active" onclick="switchDetailTab('measures')">Measures</div>
+                <div class="detail-tab" onclick="switchDetailTab('clinicians')">Clinicians</div>
+                <div class="detail-tab" onclick="switchDetailTab('work')">Work Plan</div>
+            </div>
+
+            <div class="detail-content">
+                <div id="measures-tab" class="tab-content active">
+                    <div id="mvp-details">
+                        <div class="empty-state">Select an MVP to configure measures</div>
+                    </div>
+                </div>
+
+                <div id="clinicians-tab" class="tab-content">
+                    <div id="clinicians-details">
+                        <div class="empty-state">Select an MVP to view assigned clinicians</div>
+                    </div>
+                </div>
+
+                <div id="work-tab" class="tab-content">
+                    <div id="work-details">
+                        <div class="empty-state">Select an MVP to view work requirements</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="review-mode" id="review-mode">
+        <div style="padding: 40px; text-align: center;">
+            <h2>Performance Review Mode</h2>
+            <p>This feature will be available once clinicians and measures are configured.</p>
+            <button class="header-btn" onclick="toggleMode()">Back to Planning</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
