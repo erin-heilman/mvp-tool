@@ -3,11 +3,5 @@
     "api/sheets/[sheet].js": {
       "maxDuration": 10
     }
-  },
-  "rewrites": [
-    {
-      "source": "/js/(.*)",
-      "destination": "/public/js/$1"
-    }
-  ]
+  }
 }
